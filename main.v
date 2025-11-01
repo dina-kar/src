@@ -117,17 +117,17 @@ module main(
   integer i;
 
   // Capture incoming bytes until we have a full 64-byte block.
+  // Accept data in any state to avoid dropping bytes when ESP32 sends immediately
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       rx_count <= 7'd0;
     end else begin
-      if (state == S_RX_WAIT) begin
-        if (rx_data_valid) begin
-          if (rx_count < 7'd64) begin
-            plain_buf[rx_count] <= rx_data;
-            rx_count <= rx_count + 7'd1;
-          end
-        end
+      if (rx_data_valid && rx_count < 7'd64) begin
+        plain_buf[rx_count] <= rx_data;
+        rx_count <= rx_count + 7'd1;
+      end else if (state == S_TX_SEND && tx_count == 7'd63 && tx_data_valid_pipe && tx_data_ready) begin
+        // Reset rx_count when last byte is transmitted to prepare for next block
+        rx_count <= 7'd0;
       end
     end
   end
@@ -271,7 +271,6 @@ module main(
               tx_data_valid_pipe <= 1'b0;
               // Increment counter for next block and go back to RX
               core_ctr      <= core_ctr + 64'd1;
-              rx_count      <= 7'd0;  // Reset RX counter for next block
               state         <= S_RX_WAIT;
             end else begin
               tx_count <= tx_count + 7'd1;
