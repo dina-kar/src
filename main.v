@@ -128,9 +128,6 @@ module main(
             rx_count <= rx_count + 7'd1;
           end
         end
-      end else if (state == S_TX_SEND && tx_count == 7'd64 && tx_data_valid && tx_data_ready) begin
-        // Prepare for next block once transmission completes
-        rx_count <= 7'd0;
       end
     end
   end
@@ -274,6 +271,7 @@ module main(
               tx_data_valid_pipe <= 1'b0;
               // Increment counter for next block and go back to RX
               core_ctr      <= core_ctr + 64'd1;
+              rx_count      <= 7'd0;  // Reset RX counter for next block
               state         <= S_RX_WAIT;
             end else begin
               tx_count <= tx_count + 7'd1;
